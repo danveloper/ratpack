@@ -22,6 +22,7 @@ import ratpack.file.internal.FileSystemBindingHandler;
 import ratpack.handling.internal.*;
 import ratpack.http.internal.HeaderHandler;
 import ratpack.http.internal.MethodHandler;
+import ratpack.http.internal.PathContentTypeHandler;
 import ratpack.launch.LaunchConfig;
 import ratpack.path.PathBinder;
 import ratpack.path.internal.PathHandler;
@@ -262,6 +263,14 @@ public abstract class Handlers {
    */
   public static Handler header(String headerName, String headerValue, Handler handler) {
     return new HeaderHandler(headerName, headerValue, handler);
+  }
+
+  public static Handler pathAndContentType(PathBinder pathBinder, String contentType, Handler handler) {
+    return new PathContentTypeHandler(pathBinder, contentType, handler);
+  }
+
+  public static Handler pathAndContentType(PathBinder pathBinder, List<String> contentTypes, Handler handler) {
+    return new PathContentTypeHandler(pathBinder, contentTypes, handler);
   }
 
 }

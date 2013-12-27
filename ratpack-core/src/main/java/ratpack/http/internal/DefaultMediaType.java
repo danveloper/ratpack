@@ -19,6 +19,7 @@ package ratpack.http.internal;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import ratpack.http.MediaType;
 
@@ -44,6 +45,24 @@ public class DefaultMediaType implements MediaType {
 
   private static final Cache<String, MediaType> ISO_CACHE = CacheBuilder.newBuilder().maximumSize(CACHE_SIZE).build();
   private static final Cache<String, MediaType> UTF8_CACHE = CacheBuilder.newBuilder().maximumSize(CACHE_SIZE).build();
+
+  public static MediaType fromString(final String contentType) {
+    String[] parts = getParts(contentType);
+    String type = parts[0];
+    boolean isUtf8 = false;
+
+    if (parts.length > 1) {
+      Map<String, String> params = extractParams(parts[1]);
+      if (params.containsKey(CHARSET_KEY)) {
+        String charset = params.get(CHARSET_KEY);
+        if (UTF8.equals(charset)) {
+          isUtf8 = true;
+        }
+      }
+    }
+
+    return isUtf8 ? utf8(type) : get(type);
+  }
 
   public static MediaType get(final String contentType) {
     return fromCache(ISO_CACHE, contentType, DEFAULT_CHARSET);
@@ -79,32 +98,14 @@ public class DefaultMediaType implements MediaType {
     if (value == null) {
       type = null;
     } else {
-      value = value.trim();
-      if (value.length() == 0) {
-        type = null;
-      } else {
-        String[] parts = value.split(";");
-        type = parts[0].toLowerCase();
-        if (parts.length > 1) {
-          for (int i = 1; i < parts.length; ++i) {
-            String part = parts[i].trim();
-            String keyPart;
-            String valuePart;
-            if (part.contains("=")) {
-              String[] valueSplit = part.split("=", 2);
-              keyPart = valueSplit[0].toLowerCase();
-              valuePart = valueSplit[1];
-
-              if (keyPart.equals(CHARSET_KEY)) {
-                setCharset = true;
-              }
-            } else {
-              keyPart = part.toLowerCase();
-              valuePart = "";
-            }
-            paramsBuilder.put(keyPart, valuePart);
-          }
+      String[] parts = getParts(value);
+      type = parts[0].toLowerCase();
+      if (parts.length > 1) {
+        Map<String, String> paramsMap = extractParams(parts[1]);
+        if (paramsMap.containsKey(CHARSET_KEY)) {
+          setCharset = true;
         }
+        paramsBuilder.putAll(paramsMap);
       }
     }
 
@@ -167,5 +168,31 @@ public class DefaultMediaType implements MediaType {
       }
       return s.toString();
     }
+  }
+
+  private static Map<String, String> extractParams(String value) {
+    ImmutableMap.Builder<String, String> paramsBuilder = ImmutableMap.builder();
+    String[] parts = getParts(value);
+    if (parts.length > 1) {
+      for (int i = 1; i < parts.length; ++i) {
+        String part = parts[i].trim();
+        String keyPart;
+        String valuePart;
+        if (part.contains("=")) {
+          String[] valueSplit = part.split("=", 2);
+          keyPart = valueSplit[0].toLowerCase();
+          valuePart = valueSplit[1];
+        } else {
+          keyPart = part.toLowerCase();
+          valuePart = "";
+        }
+        paramsBuilder.put(keyPart, valuePart);
+      }
+    }
+    return paramsBuilder.build();
+  }
+
+  private static String[] getParts(String value) {
+    return value.split(";");
   }
 }

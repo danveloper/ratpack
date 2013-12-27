@@ -21,6 +21,7 @@ import ratpack.handling.Chain;
 import ratpack.handling.Handler;
 import ratpack.handling.Handlers;
 import ratpack.launch.LaunchConfig;
+import ratpack.path.internal.TokenPathBinder;
 import ratpack.registry.Registry;
 import ratpack.util.Action;
 
@@ -59,6 +60,10 @@ public class DefaultChain implements Chain {
 
   public Chain prefix(String prefix, Handler handler) {
     return handler(Handlers.prefix(prefix, handler));
+  }
+
+  public Chain prefix(String prefix, List<String> contentTypes, Handler handler) {
+    return handler(Handlers.pathAndContentType(new TokenPathBinder(prefix, true), contentTypes, handler));
   }
 
   public Chain prefix(String prefix, Action<? super Chain> action) throws Exception {
